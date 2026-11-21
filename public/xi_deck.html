@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>#XI — Standalone Hyper-Realistic Media Deck &amp; Theme Tester</title>
+  <style>
+    :root {
+      --or: #b91c1c;
+      --pe: #cbd5e1;
+      --bg: #080b10;
+      --panel: rgba(11, 15, 22, 0.92);
+      --card: rgba(20, 26, 35, 0.88);
+      --fg: #f1f5f9;
+      --mu: #94a3b8;
+      --border: rgba(148, 163, 184, 0.45);
+      --ff: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100%;
+      background: #040508;
+      color: var(--fg);
+      font-family: var(--ff);
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    html.post-noir { filter: grayscale(0.94) contrast(1.22) brightness(0.96); }
+    html.post-vellum { filter: sepia(0.56) contrast(1.06) brightness(0.97) saturate(0.92); }
+    html.post-cyber { filter: contrast(1.1) saturate(1.16) brightness(0.98); }
+
+    #bg-backdrop {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      opacity: 0.44;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #bg-vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 35%, rgba(0, 0, 0, 0.25) 0%, rgba(4, 6, 10, 0.86) 100%);
+    }
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+    #post-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+    .overlay-noir { background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0, 0, 0, 0.56) 100%); }
+    .overlay-vellum { background: radial-gradient(ellipse at 50% 50%, rgba(212, 174, 108, 0.12) 45%, rgba(56, 32, 10, 0.45) 100%); }
+    .overlay-cyber { background: radial-gradient(ellipse at 50% 45%, rgba(0, 185, 255, 0.1) 0%, rgba(10, 70, 175, 0.24) 65%, rgba(4, 20, 56, 0.5) 100%); }
+
+    .app {
+      position: relative;
+      z-index: 4;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 18px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+    }
+    .banner {
+      max-width: 1240px;
+      margin: 0 auto 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.36);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--pe);
+    }
+    .widget-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .wbtn {
+      cursor: pointer;
+      padding: 4px 9px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.5);
+      color: var(--fg);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+    .wbtn:hover { border-color: var(--or); filter: brightness(1.15); }
+    .wbtn.on { background: var(--or); color: #0b0b0d; border-color: var(--pe); box-shadow: 0 0 12px var(--or); }
+
+    .topbar {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 4px;
+      background: var(--or);
+      color: #fff;
+      border: 1px solid var(--pe);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: 0 0 18px rgba(0, 0, 0, 0.55);
+      flex-shrink: 0;
+    }
+    .title { font-size: 17px; font-weight: 900; letter-spacing: 0.09em; text-transform: uppercase; }
+    .sub { font-size: 11px; color: var(--mu); margin-top: 2px; }
+    .actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    button, select, input { font-family: inherit; color: inherit; }
+    .btn {
+      cursor: pointer;
+      min-height: 38px;
+      padding: 0 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.12s, border-color 0.15s, filter 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover { filter: brightness(1.16); border-color: var(--or); }
+    .btn-primary {
+      background: var(--or);
+      border-color: var(--pe);
+      color: #090b0f;
+      font-weight: 900;
+    }
+    nav {
+      max-width: 1240px;
+      margin: 10px auto 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .tab-active {
+      background: var(--or);
+      color: #090b0f;
+      border-color: var(--pe);
+      font-weight: 900;
+    }
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 16px 18px 200px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+      gap: 11px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 11px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+      backdrop-filter: blur(10px);
+    }
+    .card:hover { border-color: var(--pe); transform: translateY(-1px); }
+    .card.active {
+      border-color: var(--or);
+      box-shadow: 0 0 22px rgba(255, 255, 255, 0.12), inset 0 0 0 1px var(--pe);
+    }
+    .art {
+      width: 50px;
+      height: 50px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .art img { width: 100%; height: 100%; object-fit: cover; }
+    .meta { flex: 1; min-width: 0; }
+    .tname { font-size: 13px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tsub { font-size: 11px; color: var(--mu); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tcode {
+      display: inline-block;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 1px 6px;
+      margin-right: 5px;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.45);
+      color: var(--pe);
+    }
+
+    /* Quick Theme Bar in main viewport for fast testing */
+    .quick-theme-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 0 0 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .qt-chip {
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 6px 11px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 11px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.14s;
+    }
+    .qt-chip:hover { border-color: var(--or); }
+    .qt-chip.on { background: var(--or); color: #090b0f; border-color: var(--pe); }
+
+    /* Holographic Pokémon Cards Grid */
+    .poke-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+      gap: 16px;
+    }
+    .poke-card {
+      position: relative;
+      border-radius: 12px;
+      padding: 10px;
+      border: 4px solid #eab308;
+      background: linear-gradient(155deg, #1b222d 0%, #0b0e14 60%, #2b1215 100%);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.72), inset 0 0 18px rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.2s ease;
+      overflow: hidden;
+    }
+    .poke-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(125deg, transparent 20%, rgba(255, 255, 255, 0.18) 45%, rgba(56, 224, 255, 0.2) 55%, transparent 80%);
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+    .poke-card:hover {
+      transform: translateY(-4px) scale(1.015);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85), 0 0 22px var(--or);
+    }
+    .poke-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .poke-stage {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      margin-right: 4px;
+    }
+    .poke-art {
+      position: relative;
+      height: 185px;
+      border-radius: 6px;
+      border: 2px solid #facc15;
+      overflow: hidden;
+      background: #080a0f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .poke-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .poke-fallback {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 14px;
+      color: #fde68a;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .poke-moves {
+      margin-top: 8px;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #e2e8f0;
+    }
+    .poke-move-row {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 800;
+      color: #fef08a;
+      margin-bottom: 2px;
+    }
+    .poke-foot {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.16);
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #cbd5e1;
+      font-family: ui-monospace, monospace;
+    }
+
+    .empty {
+      max-width: 560px;
+      margin: 28px auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 28px;
+      text-align: center;
+      backdrop-filter: blur(14px);
+    }
+    .empty h2 { font-size: 18px; margin-bottom: 8px; }
+    .empty p { font-size: 13px; color: var(--mu); margin-bottom: 16px; line-height: 1.5; }
+
+    /* Quick-Scroll Horizontal Playlist Thumbnail Strip */
+    .quick-strip-wrap {
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: 86px;
+      z-index: 25;
+      max-width: 1080px;
+      margin: 0 auto;
+      transition: bottom 0.18s;
+    }
+    .quick-strip-wrap.no-player { bottom: 14px; }
+    .quick-strip {
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+    }
+    .q-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px 4px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .q-item.active { border-color: var(--pe); background: rgba(255, 255, 255, 0.14); }
+    .q-thumb {
+      width: 34px;
+      height: 34px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      overflow: hidden;
+    }
+    .q-label { text-align: left; max-width: 115px; }
+    .q-title { font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .q-count { font-size: 10px; color: var(--mu); }
+
+    /* Mini Player */
+    .mini-player {
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 26;
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--pe);
+      border-radius: 6px;
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.78);
+    }
+    .seek { flex: 1; accent-color: var(--or); cursor: pointer; }
+
+    /* Features & DIY Modal */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(0, 0, 0, 0.76);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      width: 100%;
+      max-width: 640px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      max-height: 86vh;
+      overflow-y: auto;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; margin-bottom: 14px; }
+    .chip {
+      padding: 7px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.45);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .chip.on { background: var(--or); color: #090b0f; border-color: var(--pe); font-weight: 900; }
+    .toast {
+      position: fixed;
+      top: 84px;
+      right: 18px;
+      z-index: 60;
+      background: var(--panel);
+      border: 1px solid var(--or);
+      color: var(--fg);
+      padding: 8px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+      display: none;
+    }
+    video { width: 100%; max-height: 60vh; border-radius: 6px; background: #000; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <img id="bg-backdrop" alt="Theme Backdrop" />
+  <div id="bg-vignette"></div>
+  <canvas id="bg-canvas"></canvas>
+  <div id="post-overlay"></div>
+  <div id="toast" class="toast"></div>
+
+  <div class="app">
+    <header>
+      <div class="banner" id="theme-banner">
+        <span id="banner-left">TEMPLAR CITADEL · DARK MEDIEVAL DOWNPOUR</span>
+        <div class="widget-row" id="banner-widgets"></div>
+      </div>
+      <div class="topbar">
+        <div class="brand">
+          <div class="badge" id="brand-icon">🛡️</div>
+          <div>
+            <div class="title" id="brand-title">TEMPLAR CITADEL</div>
+            <div class="sub" id="brand-sub">Templar — Rainy Siege &amp; Hearth · 4 demo tracks</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btn-add">+ Add Media</button>
+          <button class="btn" id="btn-demo">🎹 Load Demo Audio</button>
+          <button class="btn" id="btn-features">✨ Features &amp; DIY</button>
+          <input id="search" placeholder="Search tracks…" style="min-height:38px;padding:0 10px;border-radius:4px;border:1px solid var(--border);background:rgba(0,0,0,0.45);font-size:12px;" />
+        </div>
+      </div>
+      <nav>
+        <button class="btn tab-active" data-tab="audio" id="nav-audio">🎵 Music</button>
+        <button class="btn" data-tab="video" id="nav-video">🎬 Video</button>
+        <button class="btn" data-tab="lists" id="nav-lists">📋 Playlists</button>
+        <button class="btn" data-tab="cards" id="nav-cards">🃏 Wallpapers (Pokémon Cards)</button>
+        <button class="btn" id="btn-new-pl">+ New Playlist</button>
+      </nav>
+    </header>
+
+    <main>
+      <div class="quick-theme-bar" id="quick-theme-bar"></div>
+      <div id="main-view"></div>
+    </main>
+  </div>
+
+  <!-- Quick-Scroll Horizontal Playlist Thumbnail Strip -->
+  <div class="quick-strip-wrap no-player" id="quick-strip-wrap">
+    <div class="quick-strip" id="quick-strip"></div>
+  </div>
+
+  <!-- Mini Player -->
+  <div class="mini-player" id="mini-player" style="display:none;">
+    <div class="meta" style="max-width:240px;">
+      <div class="tname" id="np-title">No track</div>
+      <div class="tsub" id="np-time">0:00 / 0:00</div>
+    </div>
+    <input type="range" class="seek" id="seek-bar" min="0" max="100" value="0" />
+    <div style="display:flex;gap:6px;">
+      <button class="btn" id="btn-prev">⏮</button>
+      <button class="btn btn-primary" id="btn-play">▶</button>
+      <button class="btn" id="btn-next">⏭</button>
+    </div>
+  </div>
+
+  <!-- Features & DIY Modal -->
+  <div class="modal-bg" id="features-modal">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <strong style="font-size:15px;">✨ Features &amp; DIY Cinema Themes</strong>
+        <button class="btn" id="btn-close-feat">✕</button>
+      </div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--pe);font-weight:800;">Featured Hyper-Realistic DIY Themes</div>
+      <div class="chips" id="theme-chips"></div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--pe);font-weight:800;">DIY Accent Color Override</div>
+      <div class="chips" id="accent-chips"></div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--pe);font-weight:800;">Cinematic Post-Processing</div>
+      <div class="chips" id="post-chips"></div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--pe);font-weight:800;">Playback Speed</div>
+      <div class="chips" id="speed-chips"></div>
+
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:6px;">
+        <button class="btn" id="btn-reset-feat" style="width:100%;justify-content:center;border-color:rgba(255,95,95,0.55);color:#ffb4b4;">🔄 Restart All Features to Before</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="file-input" multiple accept="audio/*,video/*" style="display:none;" />
+  <audio id="aud"></audio>
+
+  <script>
+    window.__XI_ASSET_BASE__ = '';
+    function resolveAsset(p) {
+      if (!p) return '';
+      if (/^https?:|^blob:|^data:/i.test(p)) return p;
+      const base = window.__XI_ASSET_BASE__ || '';
+      return base ? base.replace(/\/$/, '') + p : p;
+    }
+
+    const THEMES = {
+      templar: {
+        label: 'Templar — Dark Medieval Rain',
+        icon: '🛡️',
+        title: 'TEMPLAR CITADEL',
+        bannerL: 'ORDER OF THE TEMPLE // DARK MEDIEVAL STORM & IRON PLATE',
+        tabs: ['🎬 War Chronicles', '🎵 Chants & Lutes', '📋 Orders', '🃏 Wallpapers'],
+        badgePrefix: 'CRUS',
+        or: '#b91c1c', pe: '#cbd5e1', bg: '#080b10', panel: 'rgba(11,15,22,0.92)', card: 'rgba(20,26,35,0.88)', fg: '#f1f5f9', mu: '#94a3b8', border: 'rgba(148,163,184,0.48)',
+        fx: 'templar_rain',
+        img: '/assets/aistudio/830b6be98a5075e2ff36e93fea0cdb9c_37e18bcd.jpg'
+      },
+      witcher: {
+        label: 'The Witcher (Netflix) — Signs & Runes',
+        icon: '🐺',
+        title: 'THE WITCHER',
+        bannerL: 'KAER MORHEN // MEDALLION HUMMING · SIGNS & ELDER RUNES',
+        tabs: ['🎬 Contracts', '🎵 Toss a Coin', '📋 Bestiary', '🃏 Wallpapers'],
+        badgePrefix: 'ᚠ WOLF',
+        or: '#f59e0b', pe: '#fcd34d', bg: '#09090c', panel: 'rgba(12,12,16,0.94)', card: 'rgba(22,22,27,0.88)', fg: '#f4f4f5', mu: '#a1a1aa', border: 'rgba(168,85,247,0.52)',
+        fx: 'witcher_signs',
+        img: '/assets/aistudio/4603b71ef5f687b42944a02b439b1f0a_2ce443d7.jpg'
+      },
+      dnd: {
+        label: 'D&D — Polyhedral Dice Table',
+        icon: '🎲',
+        title: 'DUNGEONS & DRAGONS',
+        bannerL: 'DM CAMPAIGN TABLE // POLYHEDRAL DICE & ARCANE GRID',
+        tabs: ['🎬 Cutscenes', '🎵 Bard Songs', '📋 Quest Log', '🃏 Wallpapers'],
+        badgePrefix: 'd20',
+        or: '#dc2626', pe: '#fcd34d', bg: '#140c08', panel: 'rgba(28,16,10,0.94)', card: 'rgba(42,24,15,0.88)', fg: '#f7ebd6', mu: '#cbb08c', border: 'rgba(251,191,36,0.52)',
+        fx: 'dndtable',
+        img: '/assets/aistudio/db2f84aabfb7b938a0acbb88a886f14b_3edf27cf.jpg'
+      },
+      alien: {
+        label: 'Aliens — Night Cornfields & UFOs',
+        icon: '🛸',
+        title: 'CROP INVASION',
+        bannerL: 'SECTOR 04 WHEATFIELD // UFO TRACTOR BEAM LOCKED',
+        tabs: ['🎬 Tractor Feeds', '🎵 Crop Signals', '📋 Crop Circles', '🃏 Wallpapers'],
+        badgePrefix: 'UFO',
+        or: '#39ff14', pe: '#86efac', bg: '#030d05', panel: 'rgba(5,19,8,0.94)', card: 'rgba(8,28,12,0.88)', fg: '#e8ffe9', mu: '#6bc47e', border: 'rgba(57,255,20,0.52)',
+        fx: 'alienfarm',
+        img: '/assets/aistudio/438593196e8386d0020e5e213acebede_424a3a18.jpg'
+      },
+      steampunk: {
+        label: 'Steampunk — Steam Machine & Gears',
+        icon: '⚙️',
+        title: 'AETHER ENGINE',
+        bannerL: 'BOILER NO.09 // HIGH-PRESSURE BRASS VALVES & STEAM',
+        tabs: ['🎬 Kinetoscopes', '🎵 Brass Cylinders', '📋 Valve Cards', '🃏 Wallpapers'],
+        badgePrefix: 'GEAR',
+        or: '#d97706', pe: '#fbbf24', bg: '#140c05', panel: 'rgba(28,17,7,0.94)', card: 'rgba(42,25,11,0.88)', fg: '#faebd0', mu: '#cfb082', border: 'rgba(251,191,36,0.52)',
+        fx: 'steamengine',
+        img: '/assets/aistudio/8cdedfc74d681b60c1c6cab60dcf42fe_1ac69ff2.jpg'
+      },
+      pirate: {
+        label: 'Dark Seas — Kraken & Abyss',
+        icon: '🐙',
+        title: 'DARK SEAS',
+        bannerL: 'ABYSSAL GALE // KRAKEN TENTACLES & CURSED GALLEON',
+        tabs: ['🎬 Voyages', '🎵 Sea Shanties', '📋 Cursed Fleets', '🃏 Wallpapers'],
+        badgePrefix: 'SEA',
+        or: '#14b8a6', pe: '#5eead4', bg: '#03080c', panel: 'rgba(5,15,22,0.94)', card: 'rgba(8,24,32,0.88)', fg: '#eef7f6', mu: '#84b2ba', border: 'rgba(20,184,166,0.5)',
+        fx: 'kraken',
+        img: '/assets/aistudio/1b53152a1631be9df5e3cef18dee1e78_aa0c69e5.jpg'
+      },
+      matrix: {
+        label: 'The Matrix — Green Code Rain',
+        icon: '🟩',
+        title: 'THE MATRIX',
+        bannerL: '>> CONSTRUCT MAINFRAME // CASCADING PHOSPHOR CODE',
+        tabs: ['🎬 Constructs', '🎵 Code Streams', '📋 Zion Arrays', '🃏 Wallpapers'],
+        badgePrefix: 'MTX',
+        or: '#00ff41', pe: '#86efac', bg: '#010702', panel: 'rgba(1,15,4,0.95)', card: 'rgba(2,22,7,0.88)', fg: '#b8ffca', mu: '#46cc68', border: 'rgba(0,255,65,0.55)',
+        fx: 'matrixrain',
+        img: '/assets/aistudio/3f18c7e8fcc58a323db5630e76228fc7_079d857d.jpg'
+      },
+      xmen90s: {
+        label: "X-Men '92 — 90s Animated Halftone",
+        icon: '❌',
+        title: "X-MEN '92",
+        bannerL: 'XAVIER INSTITUTE // CEREBRO & DANGER ROOM TELEMETRY',
+        tabs: ['🎬 Danger Room', '🎵 Cerebro Tracks', '📋 X-Squad', '🃏 Wallpapers'],
+        badgePrefix: 'X92',
+        or: '#facc15', pe: '#fde047', bg: '#091229', panel: 'rgba(10,24,62,0.94)', card: 'rgba(13,35,86,0.88)', fg: '#fffdf0', mu: '#9fc5ff', border: 'rgba(250,204,21,0.72)',
+        fx: 'xmen90s',
+        img: '/assets/aistudio/efeab5cd3b0b06fe8cc607787db666a9_184b8c98.jpg'
+      },
+      thundercats: {
+        label: "ThunderCats '85 — Sword of Omens",
+        icon: '⚔️',
+        title: "THUNDERCATS '85",
+        bannerL: 'CATS LAIR // EYE OF THUNDERA · SIGHT BEYOND SIGHT',
+        tabs: ['🎬 Cats Lair', '🎵 Thundrillium', '📋 Third Earth', '🃏 Wallpapers'],
+        badgePrefix: 'THN',
+        or: '#e11d24', pe: '#fbbf24', bg: '#090b16', panel: 'rgba(12,14,26,0.94)', card: 'rgba(18,22,38,0.88)', fg: '#fffbeb', mu: '#a8b6d1', border: 'rgba(251,191,36,0.55)',
+        fx: 'thundercats',
+        img: '/assets/aistudio/2f7f434e046ebdfce5449ed519087bd5_4dfe0308.jpg'
+      },
+      ghostshell: {
+        label: '攻殻機動隊 — Ghost in the Shell (日本語)',
+        icon: '👁️',
+        title: '攻殻機動隊・九課',
+        bannerL: '公安九課 // 新浜市電脳通信網 — 義体同期中',
+        tabs: ['🎬 映像記録', '🎵 電脳音声', '📋 記憶集', '🃏 電脳壁紙カード'],
+        badgePrefix: '九課',
+        or: '#2df0d2', pe: '#75ffea', bg: '#041215', panel: 'rgba(5,16,25,0.94)', card: 'rgba(7,26,36,0.88)', fg: '#e4fffb', mu: '#84b7b5', border: 'rgba(45,240,210,0.52)',
+        fx: 'gits',
+        img: '/assets/aistudio/24ddf2a1ae40344c1050d29e295fad09_e007711c.jpg'
+      },
+      rpo: {
+        label: 'Ready Player One — OASIS & Three Keys',
+        icon: '🕶️',
+        title: 'THE OASIS',
+        bannerL: "ANORAK'S ALMANAC // X1 HAPTIC RIG · HALLIDAY EGG HUNT",
+        tabs: ['🎬 Planet Doom', '🎵 Halliday Audio', '📋 Gunter Caches', '🃏 Wallpapers'],
+        badgePrefix: 'KEY',
+        or: '#38e0ff', pe: '#d946ef', bg: '#04091b', panel: 'rgba(7,15,38,0.94)', card: 'rgba(10,22,54,0.88)', fg: '#ecfaff', mu: '#96b8d9', border: 'rgba(56,224,255,0.5)',
+        fx: 'oasis',
+        img: '/assets/aistudio/efe30ce11e59d42933b451f21e019b37_59027ace.jpg'
+      },
+      akira: {
+        label: "Akira '88 — Neo-Tokyo Motos",
+        icon: '🏍️',
+        title: 'AKIRA ’88',
+        bannerL: 'NEO-TOKYO ’88 // KANEDA MOTO & TOWER GRID',
+        tabs: ['🎬 Reels', '🎵 Kaneda Beats', '📋 Capsules', '🃏 Wallpapers'],
+        badgePrefix: 'M88',
+        or: '#e61c24', pe: '#2b8cff', bg: '#07070c', panel: 'rgba(18,7,10,0.92)', card: 'rgba(22,10,14,0.88)', fg: '#fff4f4', mu: '#9ec4ff', border: 'rgba(230,28,36,0.52)',
+        fx: 'akira',
+        img: '/assets/aistudio/5fefe8cb134bcfd37d1c6d5e0de7f3c7_b59f81af.jpg'
+      },
+      dune: {
+        label: 'Dune — Arrakis Hot Sun',
+        icon: '☀️',
+        title: 'ARRAKIS DECK',
+        bannerL: 'ARRAKIS · HIGH SOLAR ZENITH · DEEP DESERT SIETCH',
+        tabs: ['🎬 Visions', '🎵 Desert Hymns', '📋 Sietch Lists', '🃏 Wallpapers'],
+        badgePrefix: 'SOL',
+        or: '#f09c2b', pe: '#ffd175', bg: '#160e05', panel: 'rgba(30,18,6,0.92)', card: 'rgba(42,26,9,0.86)', fg: '#fff4d8', mu: '#e5b869', border: 'rgba(255,209,117,0.42)',
+        fx: 'sand',
+        img: '/assets/aistudio/a044485708d68c8e04ae48c6d8241aa5_ce667590.jpg'
+      },
+      batman: {
+        label: "The Batman '22 — Green & Crimson",
+        icon: '🦇',
+        title: 'THE BATMAN',
+        bannerL: '>> RATA ALADA // GOTHAM FORENSIC DECK — V02.22',
+        tabs: ['🎬 Surveillance', '🎵 Evidence Tapes', '📋 Cipher Files', '🃏 Wallpapers'],
+        badgePrefix: 'BAT',
+        or: '#e31b23', pe: '#00e68a', bg: '#030606', panel: 'rgba(6,11,11,0.94)', card: 'rgba(10,16,15,0.88)', fg: '#e8f5ee', mu: '#87b29d', border: 'rgba(0,230,138,0.42)',
+        fx: 'rain',
+        img: '/assets/aistudio/3a467991197aa196f424a6c3849562c8_35672b1e.jpg'
+      }
+    };
+
+    const POKEMON_CARDS = [
+      { no:'036/041', name:'TEMPLAR HEARTH', stage:'STAGE 2', hp:340, icon:'🛡️', type:'STEEL', move1:'Iron Vigil', dmg1:'110', move2:'Crusader Shieldwall', dmg2:'240', img:'/assets/aistudio/830b6be98a5075e2ff36e93fea0cdb9c_37e18bcd.jpg', bg:'linear-gradient(155deg,#1b222d 0%,#0b0e14 58%,#3b1315 100%)', border:'#94a3b8' },
+      { no:'037/041', name:'ABBEY OF MIST', stage:'VSTAR', hp:330, icon:'⛪', type:'DARK', move1:'Cloaked Pilgrimage', dmg1:'100', move2:'Bell of Ash', dmg2:'260', img:'/assets/aistudio/ba0a0ead75b6f37c0600390e1a363113_43fe993a.jpg', bg:'linear-gradient(155deg,#0f1c2e 0%,#060b14 58%,#15251e 100%)', border:'#64748b' },
+      { no:'038/041', name:'CRUSADER CITADEL', stage:'LEGEND', hp:360, icon:'⚔️', type:'STEEL', move1:'Cross Shield Bash', dmg1:'130', move2:'Night Siege Charge', dmg2:'290', img:'/assets/aistudio/7489f3f048a5d3af848e8bd3960baa59_1945018c.jpg', bg:'linear-gradient(155deg,#0e1726 0%,#060a12 58%,#2e1114 100%)', border:'#dc2626' },
+      { no:'039/041', name:'WHITE WOLF GERALT', stage:'VMAX', hp:390, icon:'🐺', type:'WOLF', move1:'Aard Shockwave', dmg1:'140', move2:'Silver & Swallow', dmg2:'320', img:'/assets/aistudio/4603b71ef5f687b42944a02b439b1f0a_2ce443d7.jpg', bg:'linear-gradient(155deg,#1f1a14 0%,#09090c 58%,#36130d 100%)', border:'#f59e0b' },
+      { no:'040/041', name:'IGNI MEDITATION', stage:'STAGE 2', hp:350, icon:'🜂', type:'FIRE', move1:'Quen Barrier', dmg1:'110', move2:'Ignite Blade', dmg2:'270', img:'/assets/aistudio/3b841c98df4d2948c8cf742f5da95ae1_17bcd78d.jpg', bg:'linear-gradient(155deg,#0b1b26 0%,#080b12 58%,#471808 100%)', border:'#ea580c' },
+      { no:'041/041', name:'CONJUNCTION TRIO', stage:'LEGEND', hp:400, icon:'✨', type:'CHAOS', move1:'Yennefer Chaos', dmg1:'160', move2:'Elder Blood & Silver', dmg2:'350', img:'/assets/aistudio/6e6542f7cb51f99a262f70b16739604a_275146eb.jpg', bg:'linear-gradient(155deg,#191326 0%,#090a0f 58%,#3b1315 100%)', border:'#a855f7' },
+      { no:'034/041', name:'ROLL INITIATIVE D20', stage:'LEGEND', hp:380, icon:'🎲', type:'DICE', move1:'Advantage Roll', dmg1:'150', move2:'Critical Party Strike', dmg2:'320', img:'/assets/aistudio/0d0a896ad0dda195be2917edd34a750c_3f2d0a5b.jpg', bg:'linear-gradient(155deg,#361d09 0%,#140a05 58%,#4a1212 100%)', border:'#fbbf24' },
+      { no:'027/041', name:'UFO CORNFIELD', stage:'VMAX', hp:320, icon:'🛸', type:'ALIEN', move1:'Tractor Beam', dmg1:'120', move2:'Crop Circle Surge', dmg2:'260', img:'/assets/aistudio/438593196e8386d0020e5e213acebede_424a3a18.jpg', bg:'linear-gradient(155deg,#05210a 0%,#030d05 58%,#133b1b 100%)', border:'#39ff14' },
+      { no:'021/041', name:'NEO CODE CASCADE', stage:'VMAX', hp:340, icon:'🟩', type:'MATRIX', move1:'There Is No Spoon', dmg1:'130', move2:'Bullet Time Matrix', dmg2:'280', img:'/assets/aistudio/3f18c7e8fcc58a323db5630e76228fc7_079d857d.jpg', bg:'linear-gradient(155deg,#022409 0%,#010a03 58%,#063b14 100%)', border:'#00ff41' },
+      { no:'024/041', name:'KRAKEN GALLEON', stage:'VSTAR', hp:330, icon:'🐙', type:'ABYSS', move1:'Crushing Tentacle', dmg1:'120', move2:'Abyssal Maelstrom', dmg2:'270', img:'/assets/aistudio/1b53152a1631be9df5e3cef18dee1e78_aa0c69e5.jpg', bg:'linear-gradient(155deg,#08222e 0%,#030a0f 58%,#3b1908 100%)', border:'#14b8a6' },
+      { no:'025/041', name:'IRON STEAM VIADUCT', stage:'STAGE 2', hp:310, icon:'⚙️', type:'STEAM', move1:'Valve Overpressure', dmg1:'110', move2:'Boiler Blast 240 PSI', dmg2:'250', img:'/assets/aistudio/8cdedfc74d681b60c1c6cab60dcf42fe_1ac69ff2.jpg', bg:'linear-gradient(155deg,#331e0a 0%,#140b04 58%,#4a2a0b 100%)', border:'#d97706' },
+      { no:'001/041', name:'PARZIVAL X1 OASIS', stage:'VMAX', hp:310, icon:'🕶️', type:'CYBER', move1:'X1 Visor Scan', dmg1:'90', move2:'Iron Giant Surge', dmg2:'210', img:'/assets/aistudio/efe30ce11e59d42933b451f21e019b37_59027ace.jpg', bg:'linear-gradient(155deg,#0b2452 0%,#103b7a 48%,#1e1345 100%)', border:'#38e0ff' }
+    ];
+
+    const state = {
+      theme: 'templar',
+      accentOverride: null,
+      customBackdrop: null,
+      post: 'none',
+      tab: 'audio',
+      sel: null,
+      speed: 1,
+      tracks: [],
+      pls: [],
+      fav: {},
+      curId: null,
+      videoId: null,
+      templarTool: 'HELM',
+      witcherSign: 'IGNI',
+      dndRoll: 20,
+      steamBoost: false,
+      ufoLock: true,
+      rpoKey: 'COPPER'
+    };
+
+    const aud = document.getElementById('aud');
+    const mainView = document.getElementById('main-view');
+    const quickStrip = document.getElementById('quick-strip');
+    const quickWrap = document.getElementById('quick-strip-wrap');
+    const miniPlayer = document.getElementById('mini-player');
+    const bgImg = document.getElementById('bg-backdrop');
+    let toastTimer = null;
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2400);
+    }
+
+    function fmt(sec) {
+      if (!isFinite(sec) || sec <= 0) return '0:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    // Generate playable harmonic WAV blobs in memory so user can test audio playback immediately
+    function createDemoWavUrl(freqA, freqB, durationSec) {
+      const sr = 22050;
+      const samples = Math.floor(sr * durationSec);
+      const buf = new ArrayBuffer(44 + samples * 2);
+      const v = new DataView(buf);
+      const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+      ws(0, 'RIFF');
+      v.setUint32(4, 36 + samples * 2, true);
+      ws(8, 'WAVE');
+      ws(12, 'fmt ');
+      v.setUint32(16, 16, true);
+      v.setUint16(20, 1, true);
+      v.setUint16(22, 1, true);
+      v.setUint32(24, sr, true);
+      v.setUint32(28, sr * 2, true);
+      v.setUint16(32, 2, true);
+      v.setUint16(34, 16, true);
+      ws(36, 'data');
+      v.setUint32(40, samples * 2, true);
+      for (let i = 0; i < samples; i++) {
+        const t = i / sr;
+        const env = Math.min(1, t * 4) * Math.min(1, (durationSec - t) * 4);
+        const pulse = 0.65 + 0.35 * Math.sin(2 * Math.PI * 2 * t);
+        const s = Math.sin(2 * Math.PI * freqA * t) * 0.45 + Math.sin(2 * Math.PI * freqB * t) * 0.3 + Math.sin(2 * Math.PI * (freqA * 0.5) * t) * 0.25;
+        v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, s * env * pulse * 0.45)) * 32767, true);
+      }
+      return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+    }
+
+    function loadDemoTracks() {
+      const seeds = [
+        { name: 'Siege of Rainy Spire (Templar Chants)', freqA: 146.83, freqB: 220.0, dur: 12 },
+        { name: 'Silver For Monsters — Kaer Morhen', freqA: 164.81, freqB: 246.94, dur: 12 },
+        { name: 'Roll Initiative — Red Dragon Cavern', freqA: 130.81, freqB: 196.0, dur: 12 },
+        { name: 'Neon Rain in New Port City (公安九課)', freqA: 196.0, freqB: 293.66, dur: 12 },
+        { name: 'Green Code Construct — Nebuchadnezzar', freqA: 110.0, freqB: 164.81, dur: 12 },
+        { name: 'Sword of Omens — Third Earth Overture', freqA: 174.61, freqB: 261.63, dur: 12 }
+      ];
+      const existingNames = new Set(state.tracks.map(t => t.name));
+      let added = 0;
+      seeds.forEach((s, i) => {
+        if (existingNames.has(s.name)) return;
+        state.tracks.push({
+          id: Date.now() + i + 100,
+          name: s.name,
+          kind: 'audio',
+          url: createDemoWavUrl(s.freqA, s.freqB, s.dur)
+        });
+        added++;
+      });
+      if (added > 0) showToast(`Loaded ${added} playable WebAudio test tracks`);
+      else showToast('Demo test tracks already loaded');
+      render();
+    }
+
+    function renderWidgets() {
+      const box = document.getElementById('banner-widgets');
+      if (state.theme === 'templar') {
+        box.innerHTML = ['HELM', 'SWORD', 'SHIELD'].map(tool =>
+          `<button class="wbtn ${state.templarTool === tool ? 'on' : ''}" onclick="state.templarTool='${tool}';renderWidgets();showToast('Templar Gear: ${tool}')">${tool === 'HELM' ? '⛑️ Crusade Helm' : tool === 'SWORD' ? '⚔️ Broadsword' : '🛡️ Kite Shield'}</button>`
+        ).join('') + `<span style="font-size:10px;opacity:0.85;">STORM: DOWNPOUR</span>`;
+      } else if (state.theme === 'witcher') {
+        const runes = { IGNI: '🜂', AARD: '💨', QUEN: '🛡️', YRDEN: '⚶', AXII: '👁️' };
+        box.innerHTML = ['IGNI', 'AARD', 'QUEN', 'YRDEN', 'AXII'].map(sig =>
+          `<button class="wbtn ${state.witcherSign === sig ? 'on' : ''}" onclick="state.witcherSign='${sig}';renderWidgets();showToast('Cast ${sig} Sign!')">${runes[sig]} ${sig}</button>`
+        ).join('') + `<span style="font-size:10px;color:#d8b4fe;">ᚠᚢᚦ · ${state.witcherSign}</span>`;
+      } else if (state.theme === 'dnd') {
+        box.innerHTML = [20, 12, 8, 6, 4].map(d =>
+          `<button class="wbtn ${state.dndRoll ? 'on' : ''}" onclick="state.dndRoll=1+Math.floor(Math.random()*${d});renderWidgets();showToast('Rolled d${d}: ' + state.dndRoll)">🎲 d${d}</button>`
+        ).join('') + `<span style="font-size:10px;">LAST ROLL: ${state.dndRoll}</span>`;
+      } else if (state.theme === 'steampunk') {
+        box.innerHTML = `<button class="wbtn ${state.steamBoost ? 'on' : ''}" onclick="state.steamBoost=!state.steamBoost;renderWidgets();showToast(state.steamBoost?'240 PSI STEAM RELEASED!':'Boiler Valve Normal')">⚙️ ${state.steamBoost ? 'STEAM VENTING' : 'VENT BOILER STEAM'}</button>`;
+      } else if (state.theme === 'alien') {
+        box.innerHTML = `<button class="wbtn ${state.ufoLock ? 'on' : ''}" onclick="state.ufoLock=!state.ufoLock;renderWidgets();showToast(state.ufoLock?'TRACTOR BEAM LOCKED':'Beam Standby')">🛸 ${state.ufoLock ? 'BEAM LOCKED' : 'ENGAGE BEAM'}</button>`;
+      } else if (state.theme === 'rpo') {
+        box.innerHTML = ['COPPER', 'JADE', 'CRYSTAL'].map(k =>
+          `<button class="wbtn ${state.rpoKey === k ? 'on' : ''}" onclick="state.rpoKey='${k}';renderWidgets();showToast('OASIS ${k} KEY EQUIPPED')">🗝️ ${k}</button>`
+        ).join('');
+      } else {
+        box.innerHTML = `<span style="font-size:10px;">STANDALONE HTML5 TEST DECK</span>`;
+      }
+    }
+
+    function applyTheme(key) {
+      state.theme = key;
+      const t = THEMES[key] || THEMES.templar;
+      const r = document.documentElement.style;
+      r.setProperty('--or', state.accentOverride || t.or);
+      r.setProperty('--pe', t.pe);
+      r.setProperty('--bg', t.bg);
+      r.setProperty('--panel', t.panel);
+      r.setProperty('--card', t.card);
+      r.setProperty('--fg', t.fg);
+      r.setProperty('--mu', t.mu);
+      r.setProperty('--border', t.border);
+
+      document.getElementById('brand-icon').textContent = t.icon;
+      document.getElementById('brand-title').textContent = t.title;
+      document.getElementById('banner-left').textContent = t.bannerL;
+      document.getElementById('brand-sub').textContent = `${t.label} · ${state.tracks.length} items`;
+
+      const tabs = t.tabs || ['🎬 Video', '🎵 Music', '📋 Playlists', '🃏 Wallpapers'];
+      document.getElementById('nav-video').textContent = tabs[0];
+      document.getElementById('nav-audio').textContent = tabs[1];
+      document.getElementById('nav-lists').textContent = tabs[2];
+      document.getElementById('nav-cards').textContent = tabs[3];
+
+      const bgSrc = state.customBackdrop || t.img;
+      bgImg.style.display = bgSrc ? 'block' : 'none';
+      if (bgSrc) bgImg.src = resolveAsset(bgSrc);
+
+      renderWidgets();
+      renderQuickThemeBar();
+      renderChips();
+      render();
+    }
+
+    function applyPost(mode) {
+      state.post = mode;
+      const root = document.documentElement;
+      const ov = document.getElementById('post-overlay');
+      root.classList.remove('post-noir', 'post-vellum', 'post-cyber');
+      ov.className = '';
+      if (mode === 'noir-film-grain') { root.classList.add('post-noir'); ov.className = 'overlay-noir'; }
+      if (mode === 'aged-vellum') { root.classList.add('post-vellum'); ov.className = 'overlay-vellum'; }
+      if (mode === 'cyber-blue-tint') { root.classList.add('post-cyber'); ov.className = 'overlay-cyber'; }
+      renderChips();
+    }
+
+    function renderQuickThemeBar() {
+      const box = document.getElementById('quick-theme-bar');
+      box.innerHTML = Object.entries(THEMES).map(([k, t]) =>
+        `<button class="qt-chip ${state.theme === k ? 'on' : ''}" onclick="state.customBackdrop=null;applyTheme('${k}')">${t.icon} ${t.title}</button>`
+      ).join('');
+    }
+
+    function renderChips() {
+      const tc = document.getElementById('theme-chips');
+      tc.innerHTML = Object.entries(THEMES).map(([k, t]) =>
+        `<button class="chip ${state.theme === k ? 'on' : ''}" onclick="state.customBackdrop=null;applyTheme('${k}')">${t.icon} ${t.label}</button>`
+      ).join('');
+
+      const ac = document.getElementById('accent-chips');
+      const swatches = [['Theme Default', null], ['Templar Crimson', '#b91c1c'], ['Witcher Amber', '#f59e0b'], ['Chaos Violet', '#a855f7'], ['Matrix Green', '#00ff41'], ['OASIS Cyan', '#38e0ff'], ['X-Men Gold', '#facc15']];
+      ac.innerHTML = swatches.map(([l, hex]) =>
+        `<button class="chip ${state.accentOverride === hex ? 'on' : ''}" onclick="state.accentOverride=${hex ? `'${hex}'` : 'null'};applyTheme(state.theme)">${l}</button>`
+      ).join('');
+
+      const pc = document.getElementById('post-chips');
+      pc.innerHTML = [
+        ['none', 'Off'],
+        ['noir-film-grain', 'Noir-Film-Grain'],
+        ['aged-vellum', 'Aged-Vellum'],
+        ['cyber-blue-tint', 'Cyber-Blue-Tint']
+      ].map(([k, l]) =>
+        `<button class="chip ${state.post === k ? 'on' : ''}" onclick="applyPost('${k}')">${l}</button>`
+      ).join('');
+
+      const sc = document.getElementById('speed-chips');
+      sc.innerHTML = [0.75, 1, 1.25, 1.5, 2].map(v =>
+        `<button class="chip ${state.speed === v ? 'on' : ''}" onclick="state.speed=${v};aud.playbackRate=${v};renderChips()">${v}x</button>`
+      ).join('');
+    }
+
+    function filteredTracks() {
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      return state.tracks.filter(t => {
+        if (state.tab === 'video' && t.kind !== 'video') return false;
+        if (state.tab === 'audio' && t.kind !== 'audio') return false;
+        if (state.sel === 'fav' && !state.fav[t.id]) return false;
+        if (typeof state.sel === 'number') {
+          const pl = state.pls.find(p => p.id === state.sel);
+          if (!pl || !pl.ids.includes(t.id)) return false;
+        }
+        if (q && !t.name.toLowerCase().includes(q)) return false;
+        return true;
+      });
+    }
+
+    function renderQuickStrip() {
+      if (state.tab === 'lists' || state.tab === 'cards') {
+        quickWrap.style.display = 'none';
+        return;
+      }
+      quickWrap.style.display = 'block';
+      quickWrap.classList.toggle('no-player', !state.curId);
+      const kind = state.tab === 'video' ? 'video' : 'audio';
+      const cols = [
+        { id: null, title: state.theme === 'ghostshell' ? 'すべて' : 'All', icon: THEMES[state.theme].icon, count: state.tracks.filter(t => t.kind === kind).length },
+        { id: 'fav', title: state.theme === 'ghostshell' ? 'お気に入り' : 'Favorites', icon: '❤️', count: state.tracks.filter(t => t.kind === kind && state.fav[t.id]).length },
+        ...state.pls.map(p => ({ id: p.id, title: p.name, icon: '📀', count: p.ids.length }))
+      ];
+      quickStrip.innerHTML = cols.map(c => `
+        <button class="q-item ${state.sel === c.id ? 'active' : ''}" onclick="state.sel=${c.id === null ? 'null' : typeof c.id === 'string' ? `'${c.id}'` : c.id};render()">
+          <div class="q-thumb">${c.icon}</div>
+          <div class="q-label">
+            <div class="q-title">${c.title}</div>
+            <div class="q-count">${c.count}</div>
+          </div>
+        </button>
+      `).join('');
+    }
+
+    function playTrack(id) {
+      const tr = state.tracks.find(t => t.id === id);
+      if (!tr) return;
+      if (tr.kind === 'video') {
+        aud.pause();
+        state.videoId = tr.id;
+        render();
+        return;
+      }
+      state.curId = tr.id;
+      aud.src = tr.url;
+      aud.playbackRate = state.speed;
+      aud.play().catch(() => {});
+      document.getElementById('np-title').textContent = tr.name;
+      miniPlayer.style.display = 'flex';
+      render();
+    }
+
+    function toggleFav(e, id) {
+      e.stopPropagation();
+      if (state.fav[id]) delete state.fav[id];
+      else state.fav[id] = 1;
+      render();
+    }
+
+    function assignPlaylist(e, id) {
+      e.stopPropagation();
+      if (!state.pls.length) {
+        const p = { id: Date.now(), name: 'Collection 01', ids: [id] };
+        state.pls.push(p);
+      } else {
+        const p = state.pls[0];
+        if (!p.ids.includes(id)) p.ids.push(id);
+      }
+      showToast('Added to playlist');
+      render();
+    }
+
+    function equipCardBackdrop(idx) {
+      const card = POKEMON_CARDS[idx];
+      if (!card) return;
+      state.customBackdrop = card.img;
+      bgImg.style.display = 'block';
+      bgImg.src = resolveAsset(card.img);
+      showToast(`Equipped ${card.name} (${card.no}) as backdrop`);
+    }
+
+    function render() {
+      const t = THEMES[state.theme] || THEMES.templar;
+      document.getElementById('brand-sub').textContent = `${t.label} · ${state.tracks.length} items`;
+
+      if (state.videoId) {
+        const vtr = state.tracks.find(x => x.id === state.videoId);
+        if (vtr) {
+          mainView.innerHTML = `
+            <div class="empty" style="max-width:860px;text-align:left;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>🎬 ${vtr.name}</strong>
+                <button class="btn" onclick="state.videoId=null;render()">Back to Library</button>
+              </div>
+              <video src="${vtr.url}" controls autoplay></video>
+            </div>`;
+          renderQuickStrip();
+          return;
+        }
+      }
+
+      if (state.tab === 'cards') {
+        mainView.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <strong style="font-size:15px;">🃏 Holographic Pokémon Card Wallpapers</strong>
+              <div style="font-size:11px;color:var(--mu);">Click any card to equip it as your live cinema backdrop</div>
+            </div>
+            <button class="btn" onclick="state.customBackdrop=null;applyTheme(state.theme);showToast('Restored theme backdrop')">Reset Theme Backdrop</button>
+          </div>
+          <div class="poke-grid">
+            ${POKEMON_CARDS.map((c, idx) => `
+              <div class="poke-card" style="background:${c.bg};border-color:${c.border};" onclick="equipCardBackdrop(${idx})">
+                <div class="poke-top">
+                  <span><span class="poke-stage">${c.stage}</span>${c.name}</span>
+                  <span>HP ${c.hp} ${c.icon}</span>
+                </div>
+                <div class="poke-art" style="border-color:${c.border};">
+                  <img src="${resolveAsset(c.img)}" alt="${c.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                  <div class="poke-fallback"><div style="font-size:34px;margin-bottom:6px;">${c.icon}</div><div>${c.name}</div><div style="font-size:10px;opacity:0.75;margin-top:4px;">${c.no}</div></div>
+                </div>
+                <div class="poke-moves">
+                  <div class="poke-move-row"><span>${c.icon} ${c.move1}</span><span>${c.dmg1}</span></div>
+                  <div class="poke-move-row"><span>✨ ${c.move2}</span><span>${c.dmg2}</span></div>
+                </div>
+                <div class="poke-foot">
+                  <span>${c.type} TYPE</span>
+                  <span>${c.no}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>`;
+        renderQuickStrip();
+        return;
+      }
+
+      if (state.tab === 'lists') {
+        mainView.innerHTML = `
+          <div class="grid">
+            <div class="card" onclick="state.tab='audio';state.sel='fav';render()">
+              <div class="art">❤️</div>
+              <div class="meta"><div class="tname">Favorites</div><div class="tsub">${Object.keys(state.fav).length} items</div></div>
+            </div>
+            ${state.pls.map(p => `
+              <div class="card" onclick="state.tab='audio';state.sel=${p.id};render()">
+                <div class="art">📀</div>
+                <div class="meta"><div class="tname">${p.name}</div><div class="tsub">${p.ids.length} tracks</div></div>
+              </div>
+            `).join('')}
+          </div>`;
+        renderQuickStrip();
+        return;
+      }
+
+      const list = filteredTracks();
+      if (!list.length) {
+        mainView.innerHTML = `
+          <div class="empty">
+            <div style="font-size:38px;margin-bottom:8px;">${t.icon}</div>
+            <h2>${t.title} — Ready to Test</h2>
+            <p>Switch between all 14 hyper-realistic themes above, inspect the Pokémon Cards tab, or load local MP3/MP4 files or built-in WebAudio test tracks.</p>
+            <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="loadDemoTracks()">🎹 Load Playable Demo Tracks</button>
+              <button class="btn" onclick="document.getElementById('file-input').click()">+ Load Local Files</button>
+            </div>
+          </div>`;
+      } else {
+        mainView.innerHTML = `<div class="grid">${list.map((tr, i) => `
+          <div class="card ${state.curId === tr.id ? 'active' : ''}" onclick="playTrack(${tr.id})">
+            <div class="art">${tr.kind === 'video' ? '🎬' : t.icon}</div>
+            <div class="meta">
+              <div class="tname"><span class="tcode">${t.badgePrefix}-${String(i + 1).padStart(2, '0')}</span>${tr.name}</div>
+              <div class="tsub">${tr.kind.toUpperCase()} · ${t.title}</div>
+            </div>
+            <button class="btn" onclick="toggleFav(event, ${tr.id})" title="Favorite">${state.fav[tr.id] ? '❤️' : '🤍'}</button>
+            <button class="btn" onclick="assignPlaylist(event, ${tr.id})" title="Add to Playlist">+</button>
+          </div>`).join('')}</div>`;
+      }
+      renderQuickStrip();
+    }
+
+    function addFiles(files) {
+      Array.from(files).forEach((f, i) => {
+        const isVid = f.type.startsWith('video/') || /\.(mp4|webm|mkv|mov)$/i.test(f.name);
+        const isAud = f.type.startsWith('audio/') || /\.(mp3|wav|flac|m4a|ogg|aac)$/i.test(f.name);
+        if (!isVid && !isAud) return;
+        state.tracks.unshift({
+          id: Date.now() + i,
+          name: f.name.replace(/\.[^.]+$/, ''),
+          kind: isVid ? 'video' : 'audio',
+          url: URL.createObjectURL(f)
+        });
+      });
+      render();
+    }
+
+    document.getElementById('btn-add').onclick = () => document.getElementById('file-input').click();
+    document.getElementById('btn-demo').onclick = () => loadDemoTracks();
+    document.getElementById('file-input').onchange = e => addFiles(e.target.files);
+    document.body.ondragover = e => e.preventDefault();
+    document.body.ondrop = e => { e.preventDefault(); addFiles(e.dataTransfer.files); };
+
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.onclick = () => {
+        state.tab = btn.dataset.tab;
+        document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+        render();
+      };
+    });
+    document.getElementById('btn-new-pl').onclick = () => {
+      const idx = state.pls.length + 1;
+      state.pls.push({ id: Date.now(), name: `Collection ${String(idx).padStart(2, '0')}`, ids: [] });
+      showToast(`Created Collection ${String(idx).padStart(2, '0')}`);
+      render();
+    };
+    document.getElementById('search').oninput = () => render();
+    document.getElementById('btn-features').onclick = () => document.getElementById('features-modal').classList.add('open');
+    document.getElementById('btn-close-feat').onclick = () => document.getElementById('features-modal').classList.remove('open');
+    document.getElementById('btn-reset-feat').onclick = () => {
+      state.speed = 1;
+      state.accentOverride = null;
+      state.customBackdrop = null;
+      aud.playbackRate = 1;
+      applyTheme('templar');
+      applyPost('none');
+      showToast('All features restarted to default');
+    };
+
+    document.getElementById('btn-play').onclick = () => {
+      if (!aud.src) return;
+      if (aud.paused) { aud.play(); document.getElementById('btn-play').textContent = '⏸'; }
+      else { aud.pause(); document.getElementById('btn-play').textContent = '▶'; }
+    };
+    document.getElementById('btn-next').onclick = () => {
+      const a = state.tracks.filter(t => t.kind === 'audio');
+      if (!a.length) return;
+      const i = a.findIndex(t => t.id === state.curId);
+      playTrack(a[(i + 1) % a.length].id);
+    };
+    document.getElementById('btn-prev').onclick = () => {
+      const a = state.tracks.filter(t => t.kind === 'audio');
+      if (!a.length) return;
+      const i = a.findIndex(t => t.id === state.curId);
+      playTrack(a[(i - 1 + a.length) % a.length].id);
+    };
+    aud.ontimeupdate = () => {
+      document.getElementById('np-time').textContent = `${fmt(aud.currentTime)} / ${fmt(aud.duration)}`;
+      if (aud.duration) document.getElementById('seek-bar').value = (aud.currentTime / aud.duration) * 100;
+    };
+    aud.onplay = () => { document.getElementById('btn-play').textContent = '⏸'; };
+    aud.onpause = () => { document.getElementById('btn-play').textContent = '▶'; };
+    document.getElementById('seek-bar').oninput = e => {
+      if (aud.duration) aud.currentTime = (e.target.value / 100) * aud.duration;
+    };
+
+    // Hyper-Realistic Multi-Theme Canvas Engine
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    const parts = Array.from({ length: 110 }, (_, i) => ({
+      x: Math.random(), y: Math.random(), vx: 0.25 + Math.random() * 0.85, vy: 0.35 + Math.random(), s: 1 + Math.random() * 2.5, k: i % 5
+    }));
+    const matrixCols = Array.from({ length: 48 }, () => ({ y: Math.random() * 40, spd: 0.14 + Math.random() * 0.24 }));
+    const matrixChars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789';
+    const gitsChars = '攻殻機動隊電脳公安九課新浜少佐記憶神経接続01';
+    const motos = Array.from({ length: 5 }, (_, i) => ({
+      x: (i * 0.22) % 1, y: 0.72 + (i % 3) * 0.06, dir: i % 2 === 0 ? 1 : -1, spd: 0.0022 + (i % 3) * 0.0008, color: i % 2 === 0 ? '#ff242e' : '#2b8cff'
+    }));
+    let lightningAlpha = 0;
+
+    function drawWitcherGlyph(cx, cy, r, kind, alpha, color) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      if (kind === 0) { // IGNI
+        ctx.moveTo(0, -r); ctx.lineTo(r * 0.85, r * 0.75); ctx.lineTo(-r * 0.85, r * 0.75); ctx.closePath();
+      } else if (kind === 1) { // AARD
+        ctx.moveTo(-r * 0.8, r * 0.7); ctx.lineTo(0, -r); ctx.lineTo(r * 0.8, r * 0.7);
+        ctx.moveTo(-r * 0.45, 0.15 * r); ctx.lineTo(r * 0.45, 0.15 * r);
+      } else if (kind === 2) { // QUEN
+        ctx.moveTo(-r * 0.8, -r * 0.75); ctx.lineTo(r * 0.8, -r * 0.75); ctx.lineTo(0, r); ctx.closePath();
+      } else if (kind === 3) { // YRDEN
+        ctx.moveTo(-r * 0.7, -r * 0.8); ctx.lineTo(r * 0.7, -r * 0.8); ctx.lineTo(-r * 0.7, r * 0.8); ctx.lineTo(r * 0.7, r * 0.8); ctx.closePath();
+      } else { // AXII
+        ctx.moveTo(-r * 0.8, -r * 0.7); ctx.lineTo(r * 0.8, -r * 0.7); ctx.lineTo(0, r * 0.9); ctx.closePath();
+        ctx.moveTo(-r * 0.4, -r * 0.7); ctx.lineTo(r * 0.4, -r * 0.7);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawLoop() {
+      if (canvas.width !== innerWidth || canvas.height !== innerHeight) {
+        canvas.width = innerWidth;
+        canvas.height = innerHeight;
+      }
+      const w = canvas.width, h = canvas.height;
+      const t = THEMES[state.theme] || THEMES.templar;
+      const now = performance.now() * 0.001;
+      ctx.clearRect(0, 0, w, h);
+
+      if (t.fx === 'templar_rain') {
+        if (Math.random() < 0.006) lightningAlpha = 0.24;
+        if (lightningAlpha > 0.005) {
+          ctx.fillStyle = `rgba(203, 213, 225, ${lightningAlpha})`;
+          ctx.fillRect(0, 0, w, h);
+          lightningAlpha *= 0.86;
+        }
+        ctx.strokeStyle = 'rgba(186, 206, 232, 0.42)';
+        ctx.lineWidth = 1.1;
+        for (const p of parts) {
+          p.x = (p.x - 0.003 + 1) % 1;
+          p.y = (p.y + p.vy * 0.018) % 1;
+          ctx.beginPath();
+          ctx.moveTo(p.x * w, p.y * h);
+          ctx.lineTo(p.x * w - 7, p.y * h + 22);
+          ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.55)';
+        for (let i = 0; i < 20; i++) {
+          const p = parts[i];
+          ctx.beginPath();
+          ctx.arc(((p.x + now * 0.04) % 1) * w, h - ((p.y + now * 0.14) % 1) * h * 0.45, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (t.fx === 'witcher_signs') {
+        const signCols = ['#f97316', '#38bdf8', '#fbbf24', '#a855f7', '#22c55e'];
+        for (let i = 0; i < 12; i++) {
+          const px = ((i * 0.17 + Math.sin(now * 0.2 + i) * 0.03) % 1) * w;
+          const py = ((1 - ((now * 0.03 + i * 0.09) % 1))) * h;
+          drawWitcherGlyph(px, py, 14 + (i % 3) * 4, i % 5, 0.48, signCols[i % 5]);
+        }
+        for (const p of parts) {
+          p.y = (p.y - 0.0018 + 1) % 1;
+          ctx.fillStyle = p.k % 2 === 0 ? 'rgba(245, 158, 11, 0.6)' : 'rgba(168, 85, 247, 0.55)';
+          ctx.fillRect(p.x * w, p.y * h, 2, 2);
+        }
+      } else if (t.fx === 'matrixrain') {
+        ctx.font = 'bold 14px monospace';
+        const cw = w / matrixCols.length;
+        matrixCols.forEach((col, ci) => {
+          col.y += col.spd;
+          if (col.y * 16 > h + 180) col.y = -4;
+          for (let k = 0; k < 14; k++) {
+            const ry = (col.y - k) * 16;
+            if (ry < 0 || ry > h) continue;
+            ctx.fillStyle = k === 0 ? '#d8ffdf' : `rgba(0, 255, 65, ${Math.max(0.08, 0.85 - k * 0.06)})`;
+            const ch = matrixChars[(Math.floor(col.y) + k + ci * 7) % matrixChars.length];
+            ctx.fillText(ch, ci * cw, ry);
+          }
+        });
+      } else if (t.fx === 'gits') {
+        ctx.font = 'bold 13px monospace';
+        const cw = w / matrixCols.length;
+        matrixCols.forEach((col, ci) => {
+          col.y += col.spd * 0.8;
+          if (col.y * 18 > h + 160) col.y = -4;
+          for (let k = 0; k < 10; k++) {
+            const ry = (col.y - k) * 18;
+            if (ry < 0 || ry > h) continue;
+            ctx.fillStyle = k === 0 ? '#ccfff6' : `rgba(45, 240, 210, ${Math.max(0.06, 0.7 - k * 0.07)})`;
+            ctx.fillText(gitsChars[(Math.floor(col.y) + k + ci * 5) % gitsChars.length], ci * cw, ry);
+          }
+        });
+      } else if (t.fx === 'kraken') {
+        for (let i = 0; i < 6; i++) {
+          ctx.beginPath();
+          const bx = w * (0.1 + i * 0.16);
+          ctx.moveTo(bx, h);
+          for (let s = 0; s <= 12; s++) {
+            const ty = h - s * (h * 0.036);
+            const tx = bx + Math.sin(now * 2 + i + s * 0.45) * (16 + s * 1.4);
+            ctx.lineTo(tx, ty);
+          }
+          ctx.strokeStyle = 'rgba(20, 184, 166, 0.38)';
+          ctx.lineWidth = 10;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        }
+      } else if (t.fx === 'steamengine') {
+        for (let i = 0; i < 18; i++) {
+          const p = parts[i];
+          p.y = (p.y - 0.0022 + 1) % 1;
+          const r = 24 + (1 - p.y) * 55;
+          const sg = ctx.createRadialGradient(p.x * w, p.y * h, 2, p.x * w, p.y * h, r);
+          sg.addColorStop(0, 'rgba(255, 240, 214, 0.16)');
+          sg.addColorStop(1, 'rgba(255, 240, 214, 0)');
+          ctx.fillStyle = sg;
+          ctx.beginPath(); ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2); ctx.fill();
+        }
+      } else if (t.fx === 'alienfarm') {
+        if (state.ufoLock) {
+          const ux = w * (0.5 + Math.sin(now * 0.5) * 0.25);
+          const uy = h * 0.14;
+          const bg = ctx.createLinearGradient(ux, uy, ux, h);
+          bg.addColorStop(0, 'rgba(57, 255, 20, 0.34)');
+          bg.addColorStop(1, 'rgba(57, 255, 20, 0)');
+          ctx.fillStyle = bg;
+          ctx.beginPath(); ctx.moveTo(ux - 28, uy); ctx.lineTo(ux + 28, uy); ctx.lineTo(ux + 135, h); ctx.lineTo(ux - 135, h); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#94a3b8';
+          ctx.beginPath(); ctx.ellipse(ux, uy, 42, 11, 0, 0, Math.PI * 2); ctx.fill();
+        }
+      } else if (t.fx === 'dndtable') {
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.08)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < w; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+        for (let y = 0; y < h; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+        for (let i = 0; i < 24; i++) {
+          const p = parts[i];
+          p.y = (p.y - 0.0018 + 1) % 1;
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.65)';
+          ctx.fillRect(p.x * w, p.y * h, 2.5, 2.5);
+        }
+      } else if (t.fx === 'xmen90s') {
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.16)';
+        ctx.lineWidth = 2;
+        const rr = ((now * 90) % (Math.max(w, h) * 0.7));
+        ctx.beginPath(); ctx.arc(w * 0.5, h * 0.45, rr, 0, Math.PI * 2); ctx.stroke();
+      } else if (t.fx === 'thundercats') {
+        if (Math.random() < 0.04) {
+          ctx.strokeStyle = 'rgba(225, 29, 36, 0.7)';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          let lx = Math.random() * w, ly = 0;
+          ctx.moveTo(lx, ly);
+          for (let s = 0; s < 6; s++) { lx += (Math.random() - 0.5) * 70; ly += h / 6; ctx.lineTo(lx, ly); }
+          ctx.stroke();
+        }
+      } else if (t.fx === 'oasis') {
+        ctx.strokeStyle = 'rgba(56, 224, 255, 0.15)';
+        ctx.lineWidth = 1;
+        for (let y = h * 0.65; y < h; y += 22) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+      } else if (t.fx === 'akira') {
+        for (const m of motos) {
+          m.x = (m.x + m.dir * m.spd + 1) % 1;
+          const mx = m.x * w, my = m.y * h;
+          const tg = ctx.createLinearGradient(mx, my, mx - m.dir * 130, my);
+          tg.addColorStop(0, m.color); tg.addColorStop(1, 'transparent');
+          ctx.strokeStyle = tg; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx - m.dir * 130, my); ctx.stroke();
+        }
+      } else {
+        ctx.fillStyle = (state.accentOverride || t.or) + 'aa';
+        for (const p of parts) {
+          p.y = (p.y + 0.004) % 1;
+          ctx.fillRect(p.x * w, p.y * h, p.s, p.s * 3);
+        }
+      }
+      requestAnimationFrame(drawLoop);
+    }
+
+    // Initialize with playable tracks & default Templar Citadel theme
+    loadDemoTracks();
+    applyTheme('templar');
+    drawLoop();
+  </script>
+</body>
+</html>

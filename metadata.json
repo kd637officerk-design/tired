@@ -1,0 +1,8 @@
+{
+  "name": "#XI — Hyper-Realistic Media Deck",
+  "description": "Hyper-realistic media player and DIY theme studio featuring 4K Blade Runner brutalist megastructures, volumetric holograms, wet-glass rain physics, and full local media playback.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
